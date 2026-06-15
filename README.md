@@ -1,6 +1,6 @@
 # pgrag — ~~EXPERIMENTAL~~ DEPRECATED
 
-**This extension is no longer developed or maintained.**
+**Please note: these extensions are no longer developed or maintained.**
 
 Experimental Postgres extensions to support end-to-end Retrieval-Augmented Generation (RAG) pipelines.
 
