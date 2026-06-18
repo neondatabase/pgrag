@@ -144,6 +144,7 @@ pub extern "C-unwind" fn background_main(arg: pg_sys::Datum) {
         .build()
         .expect_or_pg_err("Couldn't build tokio runtime for server")
         .block_on(async {
+            unsafe { pg_sys::BackgroundWorkerBlockSignals() };
             let path = socket_path!(pid);
             fs::remove_file(&path).unwrap_or_default(); // it's not an error if the file isn't there
             let uds = UnixListener::bind(&path).expect_or_pg_err(&format!("Couldn't create socket at {}", &path));
@@ -170,10 +171,13 @@ pub extern "C-unwind" fn background_main(arg: pg_sys::Datum) {
             Server::builder()
                 .add_service(RerankerServer::new(reranker))
                 .serve_with_incoming_shutdown(uds_stream, async {
+                    unsafe { pg_sys::BackgroundWorkerUnblockSignals() };
                     // wait_latch is not an async function and does not suspend
                     while BackgroundWorker::wait_latch(Some(Duration::from_secs(0))) {
+                        unsafe { pg_sys::BackgroundWorkerBlockSignals() };
                         // suspend so that other asyncs/threads can run
                         sleep(Duration::from_millis(500)).await;
+                        unsafe { pg_sys::BackgroundWorkerUnblockSignals() };
                     }
                 })
                 .await
